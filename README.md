@@ -1,75 +1,25 @@
-# 1. Create Apache Server Container
+# Apache Server With HAProxy
 
 ## Summary
 
 The apache web server is where we will run our containerized app.
 The main requirement is to use ubuntu as the base image so we will need to build a new docker image with all the apache dependicies required.
+Also, there's a requirement to include HAProxy with SSL support.
 
 ## Folder Structure
 
-- website/config/site.conf
-- website/html/index.html
-- website/Dockerfile
+- website - where our apache server will live
+- haproxy - where the HAProxy server configurations are
 
-## Dockerfile
+## How to run
 
-```dockerfile
-FROM ubuntu:22.04
+### Apache Server
 
-# Install apache2
-RUN set -eux; \
-	apt update; \
-	apt install -y --no-install-recommends \
-		apache2 \
-	;
-
-# Redirect log files to stderr/stdout
-RUN ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
-    ln -sf /proc/self/fd/1 /var/log/apache2/error.log
-
-# Copy site configurations into container
-COPY config/ /etc/apache2/sites-available/
-
-# Copy site configurations into container
-COPY html/ /var/www/html/
-
-EXPOSE 80
-
-CMD apachectl -D FOREGROUND
-```
-
-## HAProxy
-
-### Folder Structure
-
-- haproxy/certs/www.mysites.com-full-chain.crt (contains the certificate and the key)
-- haproxy/certs/www.mysites.com.crt (certificate generated with openssl with csr and key)
-- haproxy/certs/www.mysites.com.csr
-- haproxy/certs/www.mysites.com.key
-- haproxy/Dockerfile
-- haproxy/haproxy.cfg
-
-### Dockerfile
-
-```dockerfile
-FROM haproxy:2.3
-
-COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
-COPY certs/*-full-chain.crt /usr/local/etc/haproxy/certs/
-```
-
-# 2. Running the application stack
-
-## Apache Server
-
-### Build Image
+- Build Image:
 
 ```sh
 ~/apache-with-haproxy/website$ docker build -t apache-docker .
-```
 
-Output:
-```
 Sending build context to Docker daemon  7.168kB
 Step 1/7 : FROM ubuntu:22.04
  ---> 6795c0065f64
@@ -95,14 +45,11 @@ Successfully built 197d64876e47
 Successfully tagged apache-docker:latest
 ```
 
-### Run it (with no port)
+- Run it (with no port):
 
 ```sh
 apache-with-haproxy/website$ docker run -it --name my-running-app apache-docker
-```
 
-Output:
-```
 AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 172.17.0.2. Set the 'ServerName' directive globally to suppress this message
 AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 172.17.0.2. Set the 'ServerName' directive globally to suppress this message
 [Sat Feb 26 00:23:26.144546 2022] [mpm_event:notice] [pid 15:tid 139909789734784] AH00489: Apache/2.4.52 (Ubuntu) configured -- resuming normal operations
@@ -117,16 +64,13 @@ docker run -it --name my-running-app apache-docker -p 8080:80
 
 And test if its working in your local browser with the following url: http://localhost:8080/index.html
 
-## HAProxy
+### HAProxy
 
-### Build Image
+- Build Image:
 
 ```sh
 apache-with-haproxy/haproxy$ docker build -t my-haproxy .
-```
 
-Output:
-```
 Sending build context to Docker daemon  14.34kB
 Step 1/3 : FROM haproxy:2.5.3-alpine
 2.5.3-alpine: Pulling from library/haproxy
@@ -170,6 +114,7 @@ In order to test the `www.mysite.com` site locally we need to edit `/etc/hosts` 
 ```
 
 Try this URL in your browser, it should show "Hello World!": https://www.mysite.com/index.html
+
 
 # References
 
